@@ -1,11 +1,12 @@
 const int CH_1 = 8;
 const int CH_2 = 9;
 
+String lastMaxMin;
 int maxoutCount = 0;
 int minoutCount = 0;
 int lastMaxout = 0;
 int lastMinout = 0;
-int totalMaxoutTimeout = 300;
+int totalMaxoutTimeout = 400;
 
 bool spinner = false;
 
@@ -16,54 +17,20 @@ void setup() {
 }
 
 void loop() {
-  // format motor pwm values
+  // receive and format motor pwm values from radio controller
   int ch_1 = pulseIn(CH_1, HIGH, 25000);
   int steering = pulseToPWM(ch_1);
   int ch_2 = pulseIn(CH_2, HIGH, 25000);
   int throttle = pulseToPWM(ch_2);
   Serial.println("Steering: " + String(steering) + "  Throttle: " + String(throttle));
-  delay(10);
-
+  //pass motor values
  
 
- //
- //setup activation/deactivation of spinny thing with 6 quick back and forths of the steering
- //
-
- //identify each back/forth
- if(steering == 248){
-  maxoutCount ++;
-  lastMaxout = millis();
- }
-
- if(steering == -255){
-  minoutCount ++;
-  lastMinout = millis();
- }
-
-//ensure they are executed fast enough
- if (abs(lastMinout - lastMaxout) >= totalMaxoutTimeout){
-  maxoutCount = 0;
-  minoutCount = 0;
- }
-
-//toggle spinny thing
- if (maxoutCount >= 3 && minoutCount >= 3){
-  //start/ stop spinny motor
-  if (spinner == false){
-    spinner = true;
-  }else{
-    spinner = false;
-  }
-  
-  Serial.println("Spinny Device Activated");
-  maxoutCount = 0;
-  minoutCount = 0;
- }
-
- if (spinner){
+ checkSpinner(steering); //update whether the weapon should be spinning
+ if (spinner){ 
   //spin
  }
+ delay(10);
 }
 
 
@@ -82,4 +49,46 @@ int pulseToPWM(int pulse){
     pwm = 0;
   }
   return pwm;
+}
+
+void checkSpinner(int steering){
+//
+ //setup activation/deactivation of spinny thing with 6 quick back and forths of the steering
+ //
+
+ //identify each back/forth
+ if(steering == 248 && lastMaxMin != "max"){
+  maxoutCount ++;
+  lastMaxout = millis();
+  lastMaxMin = "steering";
+ }
+
+ if(steering == -255 && lastMaxMin != "min"){
+  minoutCount ++;
+  lastMinout = millis();
+ lastMaxMin = "min";
+ }
+
+//ensure each back and forth is quick enough
+//and therefore intentional
+ if (abs(lastMinout - lastMaxout) >= totalMaxoutTimeout){
+  maxoutCount = 0;
+  minoutCount = 0;
+ }
+
+//toggle spinny thing
+ if (maxoutCount >= 3 && minoutCount >= 3){
+  //start/ stop spinny motor
+  if (spinner == false){
+    Serial.println("Spinny Device Activated");
+    spinner = true;
+  }else{
+    spinner = false;
+    Serial.println("Spinny Device Deactivated");
+  }
+  
+  Serial.println("Spinny Device Activated");
+  maxoutCount = 0;
+  minoutCount = 0;
+ }
 }
