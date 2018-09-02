@@ -1,0 +1,85 @@
+const int CH_1 = 8;
+const int CH_2 = 9;
+
+int maxoutCount = 0;
+int minoutCount = 0;
+int lastMaxout = 0;
+int lastMinout = 0;
+int totalMaxoutTimeout = 300;
+
+bool spinner = false;
+
+void setup() {
+  Serial.begin(9600);
+  // put your setup code here, to run once:
+
+}
+
+void loop() {
+  // format motor pwm values
+  int ch_1 = pulseIn(CH_1, HIGH, 25000);
+  int steering = pulseToPWM(ch_1);
+  int ch_2 = pulseIn(CH_2, HIGH, 25000);
+  int throttle = pulseToPWM(ch_2);
+  Serial.println("Steering: " + String(steering) + "  Throttle: " + String(throttle));
+  delay(10);
+
+ 
+
+ //
+ //setup activation/deactivation of spinny thing with 6 quick back and forths of the steering
+ //
+
+ //identify each back/forth
+ if(steering == 248){
+  maxoutCount ++;
+  lastMaxout = millis();
+ }
+
+ if(steering == -255){
+  minoutCount ++;
+  lastMinout = millis();
+ }
+
+//ensure they are executed fast enough
+ if (abs(lastMinout - lastMaxout) >= totalMaxoutTimeout){
+  maxoutCount = 0;
+  minoutCount = 0;
+ }
+
+//toggle spinny thing
+ if (maxoutCount >= 3 && minoutCount >= 3){
+  //start/ stop spinny motor
+  if (spinner == false){
+    spinner = true;
+  }else{
+    spinner = false;
+  }
+  
+  Serial.println("Spinny Device Activated");
+  maxoutCount = 0;
+  minoutCount = 0;
+ }
+
+ if (spinner){
+  //spin
+ }
+}
+
+
+
+int pulseToPWM(int pulse){
+  //change values from receiver into pwm
+  int pwm;
+  if (pulse > 500){
+    pwm = map(pulse,897,2092,-255,255);
+    pwm = constrain(pwm, -255, 255);
+    if (abs(pwm) <= 10){
+      pwm = 0;
+    }
+  }
+  else{
+    pwm = 0;
+  }
+  return pwm;
+}
